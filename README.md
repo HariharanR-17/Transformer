@@ -1,5 +1,2 @@
-Deep learning and generative AI project
-Hariharan 21f2000120
-/scripts 
-/notebooks
-/data
+Deep learning and generative AI project <br>
+Hariharan <br> 21f2000120
