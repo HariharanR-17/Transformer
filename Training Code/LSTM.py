@@ -1,3 +1,4 @@
+# Download stopwords and define which is essential for emotion classification
 nltk.download('stopwords', quiet=True)
 stop_words = set(stopwords.words('english'))
 
@@ -54,14 +55,14 @@ def preprocess_text(text):
     toks = tokenize(text)
     toks = remove_stopwords(toks)
     toks = lemma_then_stem(toks)
-    return toks   # return tokens, NOT string
+    return toks
 
 
 train["clean"] = train["text"].apply(preprocess_text)
 vocab = build_vocab_all(train["clean"].values)
 
 def text_to_sequence(text, vocab):
-    toks = preprocess_text(text)  # use same pipeline
+    toks = preprocess_text(text)
 
     if len(toks) == 0:
         toks = ["<OOV>"]
