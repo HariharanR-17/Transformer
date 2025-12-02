@@ -16,26 +16,27 @@ custom_stopwords = stop_words - emotion_keep
 stemmer = PorterStemmer()
 lemmatizer = WordNetLemmatizer()
 
+# Text preprocessing
 def clean_text(text):
     if not isinstance(text, str):
         return ""
-    text = text.lower()
-    text = re.sub(r'<.*?>', '', text)
-    text = re.sub(r"http\S+|www\S+", "", text)
-    text = re.sub(r"[^a-z\s]", " ", text)
-    text = re.sub(r"\s+", " ", text).strip()
+    text = text.lower() # lowercase
+    text = re.sub(r'<.*?>', '', text) # remove html tags
+    text = re.sub(r"http\S+|www\S+", "", text) # remove websites
+    text = re.sub(r"[^a-z\s]", " ", text) # keep only lower case letters and space
+    text = re.sub(r"\s+", " ", text).strip() # remove extra spaces
     return text
 
-
+# Tokenize by space
 def tokenize(text):
     return text.split()
-    
+# Remove stop words
 def remove_stopwords(tokens):
     return [t for t in tokens if t not in custom_stopwords]
-
+# Lemmatization and stemming
 def lemma_then_stem(tokens):
     return [stemmer.stem(lemmatizer.lemmatize(t, pos='v')) for t in tokens]
-
+# Building custom vocabulary
 def build_vocab_all(texts):
     all_tokens = []
     for t in texts:
@@ -48,8 +49,7 @@ def build_vocab_all(texts):
     for idx, word in enumerate(unique_words, start=2):
         word2idx[word] = idx
     return word2idx
-
-    return word2idx
+# Function of functions
 def preprocess_text(text):
     text = clean_text(text)
     toks = tokenize(text)
@@ -57,10 +57,10 @@ def preprocess_text(text):
     toks = lemma_then_stem(toks)
     return toks
 
-
 train["clean"] = train["text"].apply(preprocess_text)
 vocab = build_vocab_all(train["clean"].values)
 
+# Convert text to sequences
 def text_to_sequence(text, vocab):
     toks = preprocess_text(text)
 
@@ -68,6 +68,8 @@ def text_to_sequence(text, vocab):
         toks = ["<OOV>"]
 
     return [vocab.get(t, vocab["<OOV>"]) for t in toks]
+
+# Dataset
 class EmotionDataset(Dataset):
     def __init__(self, texts, labels, vocab, max_len=64):
         self.sequences = [text_to_sequence(t, vocab)[:max_len] for t in texts]
@@ -84,6 +86,7 @@ class EmotionDataset(Dataset):
             self.lengths[idx]
         )
 
+# Collate function for padding
 def collate_fn(batch):
     sequences, labels, lengths = zip(*batch)
 
@@ -103,6 +106,7 @@ def collate_fn(batch):
     lengths = torch.tensor(lengths, dtype=torch.long)
 
     return sequences, labels, lengths
+
 wandb.login(key=secret)
 print("Done")
 embed_dim = 2000
@@ -111,6 +115,8 @@ wandb.init(
     project="DLgenAI",
     name=f"LSTM {embed_dim},{hidden_dim}, 0.05 "
 )
+
+# Model architecture
 class EmotionBiLSTM(nn.Module):
     def __init__(self, vocab_size, embed_dim=embed_dim, hidden_dim=hidden_dim,
                  output_dim=5, dropout=0.1):
@@ -163,6 +169,7 @@ BATCH_SIZE = 64
 train_dataset = EmotionDataset(X_train, y_train, vocab, MAX_LEN)
 val_dataset   = EmotionDataset(X_val, y_val, vocab, MAX_LEN)
 
+# Dataloaders
 train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True, collate_fn=collate_fn)
 val_loader   = DataLoader(val_dataset, batch_size=BATCH_SIZE, collate_fn=collate_fn)
 
@@ -196,6 +203,8 @@ scheduler = get_linear_schedule_with_warmup(
     num_training_steps=total_steps
 )
 print(len(vocab))
+
+# Training loop
 for epoch in range(EPOCHS):
     model.train()
     train_loss = 0
