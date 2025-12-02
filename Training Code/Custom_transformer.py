@@ -1,5 +1,7 @@
 wandb.login(key=secret)
 print("Done")
+
+# Hyperparameters for transformer
 embed_dim=16
 d_model=16
 nhead=2
@@ -10,6 +12,7 @@ wandb.init(
     name=f"CT {embed_dim},{d_model},{nhead},{num_layers},{dim_feedforward},1e-4"
 )
 
+# Seed for reproducible results
 def set_seed(seed=42):
     random.seed(seed)
     np.random.seed(seed)
@@ -17,7 +20,7 @@ def set_seed(seed=42):
     torch.cuda.manual_seed(seed)
 
 set_seed(42)
-
+# Text preprocessing
 def clean_text(text):
     if not isinstance(text, str):
         return ""
@@ -31,6 +34,7 @@ def clean_text(text):
 tokenizer = BertTokenizerFast.from_pretrained("bert-base-uncased")
 VOCAB_SIZE = tokenizer.vocab_size
 
+# Encoder function
 def encode_bert(text, tokenizer, max_len):
     encoded = tokenizer(
         text,
@@ -44,6 +48,7 @@ def encode_bert(text, tokenizer, max_len):
 
     return encoded["input_ids"], encoded["attention_mask"]
 
+# Dataset
 class EmotionDataset(Dataset):
     def __init__(self, texts, labels, tokenizer, max_len=64):
         self.texts = texts
@@ -62,7 +67,8 @@ class EmotionDataset(Dataset):
             torch.tensor(mask, dtype=torch.bool),
             torch.tensor(self.labels[idx], dtype=torch.float)
         )
-
+    
+# Transformer Architecture
 class EmotionTransformer(nn.Module):
     def __init__(self, vocab_size, embed_dim=embed_dim, d_model=d_model,
                  nhead=nhead, num_layers=num_layers, output_dim=5, max_len=64, dropout=0.1):
@@ -138,6 +144,7 @@ scheduler = get_linear_schedule_with_warmup(
     num_training_steps=total_steps
 )
 
+# Training loop
 for epoch in range(EPOCHS):
     model.train()
     train_loss = 0
