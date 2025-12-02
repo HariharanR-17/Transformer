@@ -1,3 +1,4 @@
+# Set seed for reproducible results
 def set_seed(seed=42):
     random.seed(seed)
     np.random.seed(seed)
@@ -10,8 +11,10 @@ wandb.login(key=secret)
 print("Done")
 wandb.init(project="DLgenAI", name="Roberta Large")
 
+# cuda for faster computing
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+# Dataset class
 class EmotionDataset(Dataset):
     def __init__(self, texts, labels, tokenizer, max_len=64):
         self.texts = texts
@@ -37,6 +40,7 @@ class EmotionDataset(Dataset):
         attention_mask = encoding['attention_mask'].squeeze(0)
         return input_ids, attention_mask, label
 
+# Data loaders
 def get_loaders(tokenizer, batch_size=100):
     train_dataset = EmotionDataset(X_train.tolist(), y_train, tokenizer)
     val_dataset = EmotionDataset(X_val.tolist(), y_val, tokenizer)
@@ -44,6 +48,7 @@ def get_loaders(tokenizer, batch_size=100):
     val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
     return train_loader, val_loader
 
+# Transformer architecture
 class TransformerClassifier(nn.Module):
     def __init__(self, model_name, num_classes=5):
         super().__init__()
@@ -64,26 +69,7 @@ class TransformerClassifier(nn.Module):
         # cls_output = self.dropout(cls_output)
         return self.classifier(cls_output)
 
-def evaluate(model, loader, threshold=0.5):
-    model.eval()
-    all_preds, all_labels = [], []
-    with torch.no_grad():
-        for input_ids, attention_mask, labels in tqdm(loader, desc="Validating"):
-            input_ids = input_ids.to(device)
-            attention_mask = attention_mask.to(device)
-            labels = labels.to(device)
-
-            logits = model(input_ids, attention_mask)
-            probs = torch.sigmoid(logits)
-            all_preds.append(probs.cpu())
-            all_labels.append(labels.cpu())
-
-    all_preds = torch.cat(all_preds).numpy()
-    all_labels = torch.cat(all_labels).numpy()
-    bin_preds = (all_preds >= threshold).astype(int)
-    f1_macro = f1_score(all_labels, bin_preds, average="macro")
-    return f1_macro
-
+# Evaluation function
 def evaluate(model, loader, threshold=0.5):
     model.eval()
     all_preds, all_labels = [], []
@@ -120,7 +106,8 @@ def evaluate(model, loader, threshold=0.5):
     print("Optimal thresholds per class:", best_thresholds)
     print("Maximum achievable F1-macro:", max_f1_macro)
     return f1_macro
-
+    
+# Training function
 def train_model(model_name, num_epochs=10, lr=5e-5):
     tokenizer = AutoTokenizer.from_pretrained("roberta-large")
     train_loader, val_loader = get_loaders(tokenizer)
@@ -204,9 +191,10 @@ X_train, X_val, y_train, y_val = train_test_split(
     shuffle=True,
     stratify=train['anger']
 )
-pos = y_train.sum(axis=0)          
-neg = len(y_train) - pos          
-pos_weight = torch.tensor(neg / pos, dtype=torch.float)
+# pos weight for class imbalance handling
+# pos = y_train.sum(axis=0)          
+# neg = len(y_train) - pos          
+# pos_weight = torch.tensor(neg / pos, dtype=torch.float)
 
 for model_name in ["robertalargeuf"]:
     print(f"Training {model_name.upper()}")
