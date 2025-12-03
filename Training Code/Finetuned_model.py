@@ -1,18 +1,18 @@
 # Set seed for reproducible results
 def set_seed(seed=42):
-    random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
     torch.cuda.manual_seed(seed)
     torch.cuda.manual_seed_all(seed) 
 set_seed(42)
 
-wandb.login(key=secret)
-print("Done")
-wandb.init(project="DLgenAI", name="Roberta Large")
+# wandb login code using kaggle secret
+# wandb.login(key=secret)
+# print("Done")
+# wandb.init(project="DLgenAI", name="Roberta Large")
 
-# cuda for faster computing
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+# cuda for accelerated training
+device ="cuda" if torch.cuda.is_available() else "cpu"
 
 # Dataset class
 class EmotionDataset(Dataset):
@@ -54,9 +54,9 @@ class TransformerClassifier(nn.Module):
         super().__init__()
         self.model = AutoModel.from_pretrained("roberta-large")
         hidden = self.model.config.hidden_size
+        # for freezing pretrained model layers
         # for param in self.model.parameters():
         #     param.requires_grad = False
-        self.dropout = nn.Dropout(0.3)
 
         self.classifier = nn.Sequential(        
             nn.Linear(hidden, 10),
@@ -66,7 +66,6 @@ class TransformerClassifier(nn.Module):
     def forward(self, input_ids, attention_mask):
         outputs = self.model(input_ids=input_ids, attention_mask=attention_mask)
         cls_output = outputs.last_hidden_state[:, 0, :] 
-        # cls_output = self.dropout(cls_output)
         return self.classifier(cls_output)
 
 # Evaluation function
@@ -88,9 +87,8 @@ def evaluate(model, loader, threshold=0.5):
     all_labels = torch.cat(all_labels).numpy()
     bin_preds = (all_preds >= threshold).astype(int)
     f1_macro = f1_score(all_labels, bin_preds, average="macro")
-    num_classes = all_preds.shape[1]
     best_thresholds = []
-    for c in range(num_classes):
+    for c in range(5):
         best_f1 = 0
         best_t = 0.5
         for t in np.linspace(0.1, 0.9, 81): 
@@ -148,8 +146,8 @@ def train_model(model_name, num_epochs=10, lr=5e-5):
             optimizer.zero_grad()
             logits = model(input_ids, attention_mask)
             loss = criterion(logits, labels)
-            # max_grad_norm = 1.0 
             loss.backward()
+            # max_grad_norm = 1.0 
             # utils.clip_grad_norm_(model.parameters(), max_grad_norm)
             optimizer.step()
             scheduler.step()
@@ -193,7 +191,7 @@ X_train, X_val, y_train, y_val = train_test_split(
 )
 # pos weight for class imbalance handling
 # pos = y_train.sum(axis=0)          
-# neg = len(y_train) - pos          
+# neg = len(y_train) - pos
 # pos_weight = torch.tensor(neg / pos, dtype=torch.float)
 
 for model_name in ["robertalargeuf"]:
