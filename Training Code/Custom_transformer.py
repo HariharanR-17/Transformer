@@ -1,5 +1,6 @@
-wandb.login(key=secret)
-print("Done")
+# Wandb login
+# wandb.login(key=secret)
+# print("Done")
 
 # Hyperparameters for transformer
 embed_dim=16
@@ -14,12 +15,13 @@ wandb.init(
 
 # Seed for reproducible results
 def set_seed(seed=42):
-    random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
     torch.cuda.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
 
 set_seed(42)
+
 # Text preprocessing
 def clean_text(text):
     if not isinstance(text, str):
@@ -31,7 +33,7 @@ def clean_text(text):
     text = re.sub(r"\s+", " ", text).strip()
     return text
 
-tokenizer = BertTokenizerFast.from_pretrained("bert-base-uncased")
+tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
 VOCAB_SIZE = tokenizer.vocab_size
 
 # Encoder function
@@ -42,10 +44,7 @@ def encode_bert(text, tokenizer, max_len):
         max_length=max_len,
         padding="max_length",
         truncation=True,
-        return_attention_mask=True,
-        return_tensors=None
     )
-
     return encoded["input_ids"], encoded["attention_mask"]
 
 # Dataset
@@ -189,4 +188,4 @@ for epoch in range(EPOCHS):
         "val_f1": macro_f1})
 
     print(f"Epoch {epoch+1}/{EPOCHS} — Train Loss: {train_loss:.4f}, Val Macro-F1: {macro_f1:.4f}")
-wandb.finish()
+# wandb.finish()
