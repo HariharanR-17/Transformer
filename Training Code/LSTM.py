@@ -90,31 +90,23 @@ class EmotionDataset(Dataset):
 def collate_fn(batch):
     sequences, labels, lengths = zip(*batch)
 
-    labels = torch.stack(labels)
-
     pad_idx = vocab["<PAD>"]
-    max_len = max(lengths)
 
-    padded_sequences = []
-    for seq in sequences:
-        pad_len = max_len - len(seq)
-        if pad_len > 0:
-            seq = torch.cat([seq, torch.full((pad_len,), pad_idx, dtype=torch.long)])
-        padded_sequences.append(seq)
-
-    sequences = torch.stack(padded_sequences)
+    sequences = pad_sequence(sequences, batch_first=True, padding_value=pad_idx)
+    labels = torch.stack(labels)
     lengths = torch.tensor(lengths, dtype=torch.long)
 
     return sequences, labels, lengths
 
-wandb.login(key=secret)
-print("Done")
+
+# wandb.login(key=secret)
+# print("Done")
 embed_dim = 2000
 hidden_dim = 2000
-wandb.init(
-    project="DLgenAI",
-    name=f"LSTM {embed_dim},{hidden_dim}, 0.05 "
-)
+# wandb.init(
+#     project="DLgenAI",
+#     name=f"LSTM {embed_dim},{hidden_dim}, 0.05 "
+# )
 
 # Model architecture
 class EmotionBiLSTM(nn.Module):
@@ -149,7 +141,6 @@ class EmotionBiLSTM(nn.Module):
         final_rep = self.dropout(final_rep)
         return self.fc(final_rep)
 
-       
 train = pd.read_csv("/kaggle/input/2025-sep-dl-gen-ai-project/train.csv")
 train["clean"] = train["text"].apply(clean_text)
 vocab = build_vocab_all(train["clean"].values)
