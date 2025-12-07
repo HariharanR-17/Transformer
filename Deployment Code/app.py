@@ -75,15 +75,16 @@ def predict(text):
             probs = torch.sigmoid(logits).cpu().numpy()[0]
             preds = (probs >= thresholds).astype(int)
 
-    result = {labels[i]: float(probs[i]) for i in range(5)}
-    result["predicted_labels"] = [labels[i] for i in range(5) if preds[i] == 1]
+    result = [labels[i] for i in range(5) if preds[i] == 1]
+    if len(result) == 0:
+        return "No Emotion Detected"
+    return ", ".join(result)
 
-    return result
 
 demo = gr.Interface(
     fn=predict,
     inputs=gr.Textbox(label="Enter text"),
-    outputs=gr.JSON(label="Emotion Output"),
+    outputs=gr.Textbox(label="Emotion Output"),
     title="RoBERTa-Large Emotion Classifier",
     description="Multilabel emotion prediction"
 )
